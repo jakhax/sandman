@@ -18,20 +18,24 @@ func  play(){
 
 func main(){
 	// play();
-	containerService, err := containers.NewContainerService();
+	var containerService containers.ExecContainerServiceInterface;
+	containerService, err := containers.NewExecContainerService();
+	
 	utils.HandleError(err);
 	runContainerOption := containers.RunContainerOptions{
-		Cmd:[]string{"echo","Hello"},
-		Image:"code-kombat/python-runner:latest",
+		Cmd:[]string{"python","-c","print(1"},
+		Image:"python:3.7.1-alpine3.7",
 		Runtime:"runsc-kvm",
+		Timeout:20,
 	}
+
 	stdOut, stdErr, err := containerService.RunContainer(runContainerOption);
-	utils.HandleError(err);
-
-	stdOut.Write
-
+	// utils.HandleError(err);
 	io.Copy(os.Stdout, stdOut);
 	io.Copy(os.Stderr, stdErr);
+
+	// io.Copy(os.Stdout, stdOut);
+	// io.Copy(os.Stderr, stdErr);
 
 	var language Language;
 	var source Source ;
