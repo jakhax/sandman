@@ -1,9 +1,19 @@
-package main;
+package sandbox;
 import (
 	"io"
 	"strings"
 	"fmt"
 )
+
+
+type Opt struct{
+	Strategy string `json:"strategy" validate:`
+}
+
+func (opt *Opt) OK() (err error){
+	validStrategies := []string{"run","test"};
+	isValidStrategy
+}
 
 
 type SandBoxInterface interface{
