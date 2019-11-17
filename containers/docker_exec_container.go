@@ -22,6 +22,9 @@ func (s *DockerExecContainerService) Run(runContainerOptions RunContainerOptions
 			"--rm",
 		};
 
+		containerName := utils.RandString(20);
+		dockerCommand = append(dockerCommand, fmt.Sprintf("--name=%s",containerName));
+
 		// add runtime
 		if(runContainerOptions.Runtime != ""){
 			dockerCommand = append(dockerCommand, fmt.Sprintf("--runtime=%s",runContainerOptions.Runtime));
@@ -72,6 +75,12 @@ func (s *DockerExecContainerService) Run(runContainerOptions RunContainerOptions
 				stdErr = bytes.NewReader(logStdErr.Bytes());
 			case <-timer:
 				err = cmd.Process.Kill();
+				if(err!=nil){
+					return;
+				}
+				killCmd := []string{"kill",containerName};
+				killContainerCmd :=  exec.Command("docker",killCmd...)
+				err = killContainerCmd.Run();
 				if(err!=nil){
 					return;
 				}
