@@ -8,8 +8,6 @@ import (
 
 )
 
-
-
 var testContainerCommand = &cobra.Command{
 	Use:"test_container",
 	Short:"test container",
