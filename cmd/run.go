@@ -41,7 +41,7 @@ func CreateOptFromCommand(cmd *cobra.Command) (opt *runners.Opt, err error){
 	if err != nil {
 		return
 	}
-	opt.Code = code;
+	opt.Code = []byte(code);
 	language,err :=  cmd.Flags().GetString("language");
 	if err != nil {
 		return
@@ -51,12 +51,12 @@ func CreateOptFromCommand(cmd *cobra.Command) (opt *runners.Opt, err error){
 	if err != nil {
 		return
 	}
-	opt.SetupCode = setupCode;
+	opt.SetupCode = []byte(setupCode);
 	fixture,err :=  cmd.Flags().GetString("fixture");
 	if err != nil {
 		return
 	}
-	opt.Fixture = fixture;
+	opt.Fixture = []byte(fixture);
 	testFramework,err :=  cmd.Flags().GetString("test_framework");
 	if err != nil {
 		return
@@ -86,7 +86,7 @@ func CreateOptFromCommand(cmd *cobra.Command) (opt *runners.Opt, err error){
 	if err != nil {
 		return
 	}
-	opt.Shell = shell;
+	opt.Shell = []byte(shell);
 	// validate
 	err = opt.OK()
 	if err != nil{
@@ -96,6 +96,7 @@ func CreateOptFromCommand(cmd *cobra.Command) (opt *runners.Opt, err error){
 }
 
 func init(){
+	
 	runCommand.Flags().Bool("sandbox",false,"environment to run code in, if set will execute code in sandbox");
 	runCommand.Flags().StringP("code","c","","code to run");
 	runCommand.Flags().StringP("setup_code","s","","Setup code to be used for executing the code");

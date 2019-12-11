@@ -5,8 +5,10 @@ import (
 	"os/exec"
 	"fmt"
 	"time"
+	"os"
 	"errors"
 )
+
 
 // SpawnOpt opt
 type SpawnOpt struct {

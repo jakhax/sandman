@@ -3,6 +3,10 @@ import (
 	"io"
 )
 
+const (
+	HomePath = "/home/appuser/"
+)
+
 
 // Output : runner return vaue
 type Output struct {
@@ -19,3 +23,25 @@ type Runner interface{
 func CreateRunner(language string)(runner Runner, err error){
 	return;
 }
+
+
+func SetupFromOpt(opt *Opt) (err error){
+	opt.Dir = HomePath
+	// get strategy
+	if opt.Fixture != nil {
+		opt.Strategy = "test"
+	}else{
+		opt.Strategy = "run"
+	}
+	// languages conf
+	lc, err :=  GetLanguagesConf();
+	if err != nil {
+		return
+	}
+	opt.LanguagesConf = lc 
+	
+
+
+}
+
+
