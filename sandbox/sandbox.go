@@ -1,18 +1,33 @@
 package sandbox;
 import (
+
 	"os"
 	"io"
-	// "io/ioutil"
-	// "encoding/json"
-	"github.com/jakhax/sandman/runners"
-	"github.com/jakhax/sandman/utils"
+	"io/ioutil"
+	"errors"
+	"fmt"
+	"github.com/jakhax/sandman/runner"
 	"github.com/sirupsen/logrus"
 	"github.com/jakhax/sandman/containers"
+	"github.com/jakhax/sandman/runner/python"
+	"github.com/jakhax/sandman/runneropt"
 )
+
+const (
+	// SolutionOnlyStrategy strategy
+	SolutionOnlyStrategy = "solutionOnly"
+	// TestIntegrationStrategy strategy
+	TestIntegrationStrategy = "testIntegration"
+)
+
+// SandBoxRunner interface
+type SandBoxRunner interface{
+	Run(opt *runneropt.Opt) (stdout,stderr io.Reader, err error);
+}
 
 // SandBoxInterface interface for sandbox
 type SandBoxInterface interface{
-	Run(opt *runners.Opt) (stdout, stderr io.Reader, err error)
+	Run(opt *runneropt.Opt) (stdout, stderr io.Reader, err error)
 }
 
 // SandBox executes code in runner
@@ -20,8 +35,17 @@ type SandBox struct{
 
 }
 
+// MissingLanguageImage error 
+type MissingLanguageImage struct{
+	Language string
+}
+
+func (e MissingLanguageImage) Error() string{
+	return fmt.Sprintf("Missing image for language: %s",e.Language)
+}
+
 // Run method executes code in the sandbox
-func (s *SandBox) Run(opt *runners.Opt) (stdout, stderr io.Reader, err error){
+func (s *SandBox) Run(opt *runneropt.Opt) (stdout, stderr io.Reader, err error){
 	if err != nil{
 		return 
 	}
@@ -46,10 +70,7 @@ func (s *SandBox) Run(opt *runners.Opt) (stdout, stderr io.Reader, err error){
 		logrus.Error(err);
 		return;
 	}
-	io.Copy(os.Stdout, stdOut);
-	io.Copy(os.Stderr, stdErr);
-	// stdout = output.StdOut;
-	// stderr = output.StdErr;
+	WriteToStd(stdOut, stdErr)
 	return;
 }
 
@@ -59,19 +80,151 @@ func NewSandBox()(sandbox *SandBox, err error){
 	return;
 }
 
-
-
 //GetRunnerImage returns language runner image
 func GetRunnerImage(language string) (image string, err error){
+	languagesConf , err :=  runneropt.GetLanguagesConf()
+	if err != nil{
+		return
+	}
+
+	getImageFromConf :=  func (language string) (image string,ok bool){
+		image, ok =  languagesConf.Images[language]
+		return
+	}
+
 	switch language{
-		case "python":
-			image = "sandman/python-runner";
+		case runner.PYTHON:
+			image, _ =  getImageFromConf(language);
 			break;
 		default:
 			break;
 	}
 	if image == ""{
-		err = utils.ValidationError{Message:"Language Runner image not found"}
+		err =  MissingLanguageImage{Language:language}
 	}
 	return;
 }
+
+const (
+	//HomePath default home directory in sandbox
+	HomePath = "/home/appuser/"
+)
+
+//SandBoxBaseRunner for sandbox environment
+type SandBoxBaseRunner struct{
+
+}
+
+//Run method
+func (r *SandBoxBaseRunner) Run(opt *runneropt.Opt) (stdout,stderr io.Reader, err error) {
+	// setup 
+	err =  SetupFromOpt(opt)
+	if err != nil{
+		return
+	}
+	codeRunner, err := CreateCodeRunner(opt.Language)
+	if err !=  nil {
+		return
+	}
+	// run setup shell code if exists
+	if opt.Shell != nil{
+		timeout,ok := opt.LanguagesConf.Timeouts["setup-shell"]
+		if !ok{
+			err = errors.New("Must Provide time out for setup shell");
+			return
+		}
+		spawnOpt := & SpawnOpt{
+			Dir:opt.Dir,
+			Timeout:timeout,
+		};
+		shellStdin, shellStderr, errX := RunShell(spawnOpt,opt.Shell)
+		if errX !=  nil{
+			err = errX
+			WriteToStd(shellStdin,shellStderr)
+			return
+		}
+	}
+	// run strategy
+	if opt.Strategy == SolutionOnlyStrategy {
+		stdout,stdout, err = codeRunner.SolutionOnly(opt)
+	}else{
+		stdout,stdout, err = codeRunner.TestIntegration(opt)
+	}
+	if err != nil{
+		return
+	}
+	//transform
+	stdout,stdout, err = codeRunner.TransformOutput(stdout,stderr)
+	if err != nil{
+		return
+	}
+	// sanitize 
+	stdout,err = codeRunner.SanitizeStdOut(stdout)
+	if err != nil{
+		return
+	}
+	// sanitize 
+	stderr,err = codeRunner.SanitizeStdErr(stderr)
+	if err != nil{
+		return
+	}
+	WriteToStd(stdout,stdout)
+	return
+}
+
+// WriteToStd writes to stdin/stderr
+func WriteToStd(stdin,stderr io.Reader) (err error){
+	stdInB ,err := ioutil.ReadAll(stdin)
+	if err != nil {
+		return
+	}
+	stdErrB ,err := ioutil.ReadAll(stderr)
+	if err != nil {
+		return
+	}
+	_, err = os.Stdout.WriteString(string(stdInB))
+	if err != nil{
+		return
+	}
+	_, err = os.Stderr.WriteString(string(stdErrB))
+	return
+}
+
+// CreateCodeRunner returns a language specific code runner
+func CreateCodeRunner(language string)(codeRunner runner.CodeRunner, err error){
+	
+	switch language {
+		case runner.PYTHON:
+			codeRunner = &python.Runner{};
+			break;
+		default:
+			err = errors.New("Missing Language Code Runner")
+			break
+	}
+	return;
+}
+
+// SetupFromOpt setup for opt
+func SetupFromOpt(opt *runneropt.Opt) (err error){
+	if opt.Dir == ""{
+		wd,ok := opt.LanguagesConf.WorkingDir[opt.Language]
+		if !ok{
+			wd = opt.LanguagesConf.WorkingDir["default"]
+		}
+		opt.Dir = wd
+	}
+	// get strategy
+	if opt.Fixture != nil {
+		opt.Strategy = TestIntegrationStrategy
+	}else{
+		opt.Strategy = SolutionOnlyStrategy
+	}
+	// languages conf
+	lc, err :=  runneropt.GetLanguagesConf();
+	if err != nil {
+		return
+	}
+	opt.LanguagesConf = lc 
+	return;
+}
+

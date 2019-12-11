@@ -1,11 +1,11 @@
-package runners;
+package sandbox;
 import (
 	"io"
+	"io/ioutil"
 	"bytes"
 	"os/exec"
 	"fmt"
 	"time"
-	"os"
 	"errors"
 )
 
@@ -186,4 +186,22 @@ func ReadStdIOFromPipe(stdoutPipe,stderrPipe io.ReadCloser, stdout,stderr chan S
 			Error:stderrErr,
 		}
 	}
+}
+
+// RunShell run a shell command
+func RunShell(opt *SpawnOpt, shell []byte) (stdout,stderr io.Reader, err error){
+	shellScript :=  string(shell)
+	if err !=  nil{
+		return
+	}
+	return Spwan(opt,"echo",[]string{shellScript,"|","bash","-"},nil)
+}
+
+//RunShellFromFile runs a shell script
+func RunShellFromFile(opt *SpawnOpt, file string) (stdout,stderr io.Reader, err error){
+	shell,err := ioutil.ReadFile(file)
+	if err !=  nil{
+		return
+	}
+	return RunShell(opt, shell);
 }

@@ -1,4 +1,4 @@
-package runners
+package runneropt
 
 import (
 	"io/ioutil"
@@ -9,6 +9,8 @@ import (
 type LanguagesConf struct{
 	FileExtensions map[string]string
 	Timeouts map[string]int
+	Images map[string]string
+	WorkingDir map[string]string
 }
 
 // GetLanguagesConf LanguagesConf

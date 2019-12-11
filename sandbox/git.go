@@ -1,8 +1,7 @@
-package runners
+package sandbox
 
 import (
-	"time"
-	"context"
+	"github.com/jakhax/sandman/runneropt"
 )
 
 // MissingGitURL error
@@ -14,14 +13,14 @@ func (e MissingGitURL) Error() string{
 }
 
 // DownloadFromGit get project from git
-func DownloadFromGit(ctx context.Context,timeout time.Duration)(err error){
-	opt,err :=  CtxGetOpt(ctx)
-	if err != nil{
-		return
-	}
+func DownloadFromGit(opt *runneropt.Opt ,timeout int)(err error){
+
 	spwanOpt := &SpawnOpt{
 		Dir:opt.Dir,
 		Env:opt.Env,
+	}
+	if timeout != 0{
+		spwanOpt.Timeout = timeout
 	}
 	url :=  opt.GitURL;
 	if url == ""{

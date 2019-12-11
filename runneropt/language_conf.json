@@ -1,6 +1,7 @@
 {
     "timeouts":{
         "default": 12000,
+        "setup-shell":10000,
         "go": 15000,
         "haskell": 15000,
         "sql": 14000,
@@ -26,5 +27,12 @@
         "shell": "sh",
         "sql": "sql",
         "swift": "swift"
+    },
+    "images":{
+        "base":"sandman/base",
+        "python":"sandman/python-runner"
+    },
+    "workingDir":{
+        "default":"/home/appuser"
     }
 }
