@@ -6,8 +6,8 @@ import (
 	"io/ioutil"
 	"errors"
 	"fmt"
+	"encoding/json"
 	"github.com/jakhax/sandman/runner"
-	"github.com/sirupsen/logrus"
 	"github.com/jakhax/sandman/containers"
 	"github.com/jakhax/sandman/runner/python"
 	"github.com/jakhax/sandman/runneropt"
@@ -54,18 +54,20 @@ func (s *SandBox) Run(opt *runneropt.Opt) (stdout, stderr io.Reader, err error){
 	containerService, err := containers.NewDockerSdkContainerService();
 	
 	if err !=  nil{
-		logrus.Error(err);
 		return;
 	}
+	optJson,err := json.Marshal(opt)
+	if err != nil{
+		return
+	}
 	runContainerOption := containers.RunContainerOptions{
-		Cmd:[]string{"python","-c","while True:print(1)"},
+		Cmd:[]string{"run_json","-j",string(optJson)},
 		Image:image,
 		Runtime:"runsc-kvm",
 		Timeout:opt.Timeout,
 	}
 	stdOut, stdErr, err := containerService.Run(runContainerOption);
 	if err !=  nil{
-		logrus.Error(err);
 		return;
 	}
 	WriteToStd(stdOut, stdErr)
@@ -113,9 +115,19 @@ type SandBoxBaseRunner struct{
 
 }
 
+
+
 //Run method  
 func (r *SandBoxBaseRunner) Run(opt *runneropt.Opt) (stdout,stderr io.Reader, err error) {
 
+	defer func(){
+		WriteToStd(stdout,stderr)
+		if err != nil{
+			errMsg := fmt.Sprintf("Error: %s",err.Error())
+			os.Stderr.WriteString(errMsg)
+		}
+
+	}()
 	// setup 
 	err =  SetupFromOpt(opt)
 
@@ -138,10 +150,11 @@ func (r *SandBoxBaseRunner) Run(opt *runneropt.Opt) (stdout,stderr io.Reader, er
 			Dir:opt.Dir,
 			Timeout:timeout,
 		};
-		shellStdin, shellStderr, errX := spawn.RunShell(spawnOpt,opt.Shell)
+		shellStdout, shellStderr, errX := spawn.RunShell(spawnOpt,opt.Shell)
 		if errX !=  nil{
 			err = errX
-			WriteToStd(shellStdin,shellStderr)
+			stdout = shellStdout
+			stderr = shellStderr
 			return
 		}
 	}
@@ -170,25 +183,31 @@ func (r *SandBoxBaseRunner) Run(opt *runneropt.Opt) (stdout,stderr io.Reader, er
 	if err != nil{
 		return
 	}
-	WriteToStd(stdout,stderr)
 	return
 }
 
 // WriteToStd writes to stdin/stderr
 func WriteToStd(stdout,stderr io.Reader) (err error){
-	stdOutB ,err := ioutil.ReadAll(stdout)
-	if err != nil {
+	if stdout != nil{
+		stdOutB ,errX := ioutil.ReadAll(stdout)
+		if errX != nil {
+			err = errX
+			return
+		}
+		_, err = os.Stdout.WriteString(string(stdOutB))
+		if err != nil{
+			return
+		}
+	}
+	if stderr != nil{
+		stdErrB ,errX := ioutil.ReadAll(stderr)
+		if errX != nil {
+			err = errX
+			return
+		}
+		_, err = os.Stderr.WriteString(string(stdErrB))
 		return
 	}
-	stdErrB ,err := ioutil.ReadAll(stderr)
-	if err != nil {
-		return
-	}
-	_, err = os.Stdout.WriteString(string(stdOutB))
-	if err != nil{
-		return
-	}
-	_, err = os.Stderr.WriteString(string(stdErrB))
 	return
 }
 

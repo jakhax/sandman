@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
-if [ "$1" = 'run-json' -o "$1" = 'run' ]; then
+if [ "$1" = 'run_json' -o "$1" = 'run' ]; then
     set -- './sandman' "$@"
     exec "$@"
 else 
-    echo "Usage: run-json or run"
+    echo "Usage: run_json or run"
 fi

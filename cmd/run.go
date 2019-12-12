@@ -1,7 +1,6 @@
 package cmd;
 import (
 	// "io"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/jakhax/sandman/runneropt"
 	"github.com/jakhax/sandman/sandbox"
@@ -22,25 +21,25 @@ var runCommand = &cobra.Command{
 		}
 		if sanboxFlag{
 			s,errX  :=  sandbox.NewSandBox();
-			if err != nil{
+			if errX != nil{
 				err = errX;
 				return
 			}
 			_,_,err=s.Run(opt)
 			if err != nil{
-				logrus.Error(err);
+				return
+			}
+		}else{
+			s,errX :=  sandbox.NewSandBoxRunner();
+			if errX != nil{
+				err  = errX
+				return
+			}
+			_,_,err=s.Run(opt)		
+			if err != nil{
 				return
 			}
 		}
-		s,err  :=  sandbox.NewSandBoxRunner();
-		if err != nil{
-			return
-		}
-		_,_,err=s.Run(opt)
-		// if err != nil{
-		// 	logrus.Error(err);
-		// 	return
-		// }
 		return;
 	},
 }
