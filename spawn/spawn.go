@@ -1,4 +1,4 @@
-package sandbox;
+package spawn
 import (
 	"io"
 	"io/ioutil"
@@ -71,9 +71,9 @@ func Spwan(opt *SpawnOpt, name string, args []string, stdin io.Reader)(stdout,st
 
 	var timeoutDuration time.Duration;
 	if opt.Timeout != 0{
-		timeoutDuration = time.Second*time.Duration(opt.Timeout);
+		timeoutDuration = time.Millisecond*time.Duration(opt.Timeout);
 	}else{
-		timeoutDuration = time.Second*time.Duration(15);
+		timeoutDuration = time.Second*time.Duration(60);
 	}
 
 	timeout := time.After(timeoutDuration);

@@ -2,7 +2,7 @@ package cmd;
 import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/jakhax/sandman/runners"
+	"github.com/jakhax/sandman/runneropt"
 	"encoding/json"
 )
 
@@ -16,7 +16,7 @@ var runJSONCommand = &cobra.Command{
 			return
 		}
 		logrus.Info(jsonInput);
-		opt := &runners.Opt{};
+		opt := &runneropt.Opt{};
 
 		err = json.Unmarshal([]byte(jsonInput),opt);
 		if err != nil{

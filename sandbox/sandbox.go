@@ -11,6 +11,7 @@ import (
 	"github.com/jakhax/sandman/containers"
 	"github.com/jakhax/sandman/runner/python"
 	"github.com/jakhax/sandman/runneropt"
+	"github.com/jakhax/sandman/spawn"
 )
 
 const (
@@ -30,11 +31,6 @@ type SandBoxInterface interface{
 	Run(opt *runneropt.Opt) (stdout, stderr io.Reader, err error)
 }
 
-// SandBox executes code in runner
-type SandBox struct{
-
-}
-
 // MissingLanguageImage error 
 type MissingLanguageImage struct{
 	Language string
@@ -44,11 +40,13 @@ func (e MissingLanguageImage) Error() string{
 	return fmt.Sprintf("Missing image for language: %s",e.Language)
 }
 
+// SandBox executes code in runner
+type SandBox struct{
+
+}
+
 // Run method executes code in the sandbox
 func (s *SandBox) Run(opt *runneropt.Opt) (stdout, stderr io.Reader, err error){
-	if err != nil{
-		return 
-	}
 	image,err := GetRunnerImage(opt.Language);
 	if err != nil{
 		return;
@@ -115,7 +113,7 @@ type SandBoxBaseRunner struct{
 
 }
 
-//Run method
+//Run method  
 func (r *SandBoxBaseRunner) Run(opt *runneropt.Opt) (stdout,stderr io.Reader, err error) {
 	// setup 
 	err =  SetupFromOpt(opt)
@@ -126,6 +124,7 @@ func (r *SandBoxBaseRunner) Run(opt *runneropt.Opt) (stdout,stderr io.Reader, er
 	if err !=  nil {
 		return
 	}
+	
 	// run setup shell code if exists
 	if opt.Shell != nil{
 		timeout,ok := opt.LanguagesConf.Timeouts["setup-shell"]
@@ -133,41 +132,53 @@ func (r *SandBoxBaseRunner) Run(opt *runneropt.Opt) (stdout,stderr io.Reader, er
 			err = errors.New("Must Provide time out for setup shell");
 			return
 		}
-		spawnOpt := & SpawnOpt{
+		spawnOpt := & spawn.SpawnOpt{
 			Dir:opt.Dir,
 			Timeout:timeout,
 		};
-		shellStdin, shellStderr, errX := RunShell(spawnOpt,opt.Shell)
+		fmt.Printf("Timeout %d\n",opt.Timeout)
+		shellStdin, shellStderr, errX := spawn.RunShell(spawnOpt,opt.Shell)
 		if errX !=  nil{
 			err = errX
 			WriteToStd(shellStdin,shellStderr)
 			return
 		}
 	}
+	
 	// run strategy
 	if opt.Strategy == SolutionOnlyStrategy {
-		stdout,stdout, err = codeRunner.SolutionOnly(opt)
+		
+		// stdout,stderr,err = codeRunner.SolutionOnly(opt)
+		spawnOpt := &spawn.SpawnOpt{
+			Dir:opt.Dir,
+			Timeout:opt.Timeout,
+		};
+		// code := string(opt.Code)
+		var stdin io.Reader
+		stdout, stderr, err = spawn.Spwan(spawnOpt,
+			"python",[]string{"-c","while True:print(111)"},stdin)
+		WriteToStd(stdout,stderr)
 	}else{
-		stdout,stdout, err = codeRunner.TestIntegration(opt)
+		stdout,stderr, err = codeRunner.TestIntegration(opt)
 	}
 	if err != nil{
 		return
 	}
-	//transform
-	stdout,stdout, err = codeRunner.TransformOutput(stdout,stderr)
-	if err != nil{
-		return
-	}
-	// sanitize 
-	stdout,err = codeRunner.SanitizeStdOut(stdout)
-	if err != nil{
-		return
-	}
-	// sanitize 
-	stderr,err = codeRunner.SanitizeStdErr(stderr)
-	if err != nil{
-		return
-	}
+	// //transform
+	// stdout,stdout, err = codeRunner.TransformOutput(stdout,stderr)
+	// if err != nil{
+	// 	return
+	// }
+	// // sanitize 
+	// stdout,err = codeRunner.SanitizeStdOut(stdout)
+	// if err != nil{
+	// 	return
+	// }
+	// // sanitize 
+	// stderr,err = codeRunner.SanitizeStdErr(stderr)
+	// if err != nil{
+	// 	return
+	// }
 	WriteToStd(stdout,stdout)
 	return
 }
@@ -206,6 +217,13 @@ func CreateCodeRunner(language string)(codeRunner runner.CodeRunner, err error){
 
 // SetupFromOpt setup for opt
 func SetupFromOpt(opt *runneropt.Opt) (err error){
+	// languages conf
+	lc, err :=  runneropt.GetLanguagesConf();
+	if err != nil {
+		return
+	}
+	opt.LanguagesConf = lc 
+	//working dir
 	if opt.Dir == ""{
 		wd,ok := opt.LanguagesConf.WorkingDir[opt.Language]
 		if !ok{
@@ -214,17 +232,25 @@ func SetupFromOpt(opt *runneropt.Opt) (err error){
 		opt.Dir = wd
 	}
 	// get strategy
-	if opt.Fixture != nil {
+	if len(opt.Fixture) > 0 {
 		opt.Strategy = TestIntegrationStrategy
 	}else{
 		opt.Strategy = SolutionOnlyStrategy
 	}
-	// languages conf
-	lc, err :=  runneropt.GetLanguagesConf();
-	if err != nil {
-		return
+	//timeout 
+	if opt.Timeout == 0{
+		timeout,ok := opt.LanguagesConf.Timeouts[opt.Language]
+		if !ok{
+			timeout = opt.LanguagesConf.Timeouts["default"]
+		}
+		opt.Timeout = timeout
 	}
-	opt.LanguagesConf = lc 
+
 	return;
 }
 
+// NewSandBoxRunner returns a sandbox runner
+func NewSandBoxRunner() (sanboxRunner SandBoxRunner, err error){
+	sanboxRunner = &SandBoxBaseRunner{}
+	return
+}

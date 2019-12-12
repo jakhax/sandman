@@ -2,6 +2,7 @@ package sandbox
 
 import (
 	"github.com/jakhax/sandman/runneropt"
+	"github.com/jakhax/sandman/spawn"
 )
 
 // MissingGitURL error
@@ -15,7 +16,7 @@ func (e MissingGitURL) Error() string{
 // DownloadFromGit get project from git
 func DownloadFromGit(opt *runneropt.Opt ,timeout int)(err error){
 
-	spwanOpt := &SpawnOpt{
+	spwanOpt := &spawn.SpawnOpt{
 		Dir:opt.Dir,
 		Env:opt.Env,
 	}
@@ -28,6 +29,6 @@ func DownloadFromGit(opt *runneropt.Opt ,timeout int)(err error){
 		return;
 	}
 	args := []string{"clone","--depth=1",url,opt.Dir+"/."}
-	_,_,err = Spwan(spwanOpt,"git",args,nil)
+	_,_,err = spawn.Spwan(spwanOpt,"git",args,nil)
 	return
 }

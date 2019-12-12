@@ -1,8 +1,8 @@
 package cmd;
 import (
-	// "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/jakhax/sandman/runners"
+	"github.com/jakhax/sandman/runneropt"
 	"github.com/jakhax/sandman/sandbox"
 )
 
@@ -26,17 +26,26 @@ var runCommand = &cobra.Command{
 			}
 			_,_,err=s.Run(opt)
 			if err != nil{
-				// logrus.Error(err);
+				logrus.Error(err);
 				return
 			}
+		}
+		s,err  :=  sandbox.NewSandBoxRunner();
+		if err != nil{
+			return
+		}
+		_,_,err=s.Run(opt)
+		if err != nil{
+			logrus.Error(err);
+			return
 		}
 		return;
 	},
 }
 
 // CreateOptFromCommand returns opt from command
-func CreateOptFromCommand(cmd *cobra.Command) (opt *runners.Opt, err error){
-	opt = &runners.Opt{};
+func CreateOptFromCommand(cmd *cobra.Command) (opt *runneropt.Opt, err error){
+	opt = &runneropt.Opt{};
 	code,err :=  cmd.Flags().GetString("code");
 	if err != nil {
 		return

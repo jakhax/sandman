@@ -2,6 +2,7 @@ package python
 import (
 	"github.com/jakhax/sandman/runneropt"
 	"io"
+	"github.com/jakhax/sandman/spawn"
 )
 
 // Runner code runner
@@ -26,7 +27,14 @@ func (r *Runner) TestIntegration(opt *runneropt.Opt)(stdout,stderr io.Reader, er
 
 //SolutionOnly method
 func (r *Runner) SolutionOnly(opt *runneropt.Opt)(stdout,stderr io.Reader, err error){
-	return
+	spawnOpt := &spawn.SpawnOpt{
+		Dir:opt.Dir,
+		Timeout:opt.Timeout,
+	};
+	code := string(opt.Code)
+	var stdin io.Reader
+	stdout, stderr, err = spawn.Spwan(spawnOpt,"python",[]string{"-c",code},stdin)
+	return 
 }
 
 //SanitizeStdErr method
