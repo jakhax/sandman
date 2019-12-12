@@ -91,14 +91,17 @@ func Spwan(opt *SpawnOpt, name string, args []string, stdin io.Reader)(stdout,st
 				err = stdOut.Error
 				return
 			}
+			
 			stderr = stdErr.Data
 			if stdErr.Error != nil{
 				err = stdErr.Error
 				return
 			}
 			if cmdErr != nil{
-				err = cmdErr
-				return;
+				if _, ok := cmdErr.(*exec.ExitError); !ok{
+					err = cmdErr
+					return
+				}
 			}
 			
 		case <- timeout:
@@ -177,6 +180,9 @@ func ReadStdIOFromPipe(stdoutPipe,stderrPipe io.ReadCloser, stdout,stderr chan S
 	
 	complete := <- ok;
 	if complete == true{
+		// w,_ := ioutil.ReadAll(stdoutR)
+		// fmt.Println(string(w))
+		// fmt.Println(stdoutErr.Error())
 		stdout <- StdIO{
 			Data:stdoutR,
 			Error:stdoutErr,

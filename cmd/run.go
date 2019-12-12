@@ -1,9 +1,11 @@
 package cmd;
 import (
+	// "io"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/jakhax/sandman/runneropt"
 	"github.com/jakhax/sandman/sandbox"
+	// "github.com/jakhax/sandman/spawn"
 )
 
 var runCommand = &cobra.Command{
@@ -35,10 +37,10 @@ var runCommand = &cobra.Command{
 			return
 		}
 		_,_,err=s.Run(opt)
-		if err != nil{
-			logrus.Error(err);
-			return
-		}
+		// if err != nil{
+		// 	logrus.Error(err);
+		// 	return
+		// }
 		return;
 	},
 }

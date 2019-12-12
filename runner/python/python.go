@@ -39,15 +39,15 @@ func (r *Runner) SolutionOnly(opt *runneropt.Opt)(stdout,stderr io.Reader, err e
 
 //SanitizeStdErr method
 func (r *Runner) SanitizeStdErr(stderr io.Reader)(sanStderr io.Reader, err error){
-	return
+	return stderr,err
 }
 
 //SanitizeStdOut method
 func (r *Runner) SanitizeStdOut(stdout io.Reader)(sanStdout io.Reader, err error){
-	return
+	return stdout,err
 }
 
 //TransformOutput method
 func (r *Runner) TransformOutput(stdout,stderr io.Reader)(tStdout,tStderr io.Reader, err error){
-	return
+	return stdout,stderr,err
 }

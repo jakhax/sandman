@@ -115,8 +115,10 @@ type SandBoxBaseRunner struct{
 
 //Run method  
 func (r *SandBoxBaseRunner) Run(opt *runneropt.Opt) (stdout,stderr io.Reader, err error) {
+
 	// setup 
 	err =  SetupFromOpt(opt)
+
 	if err != nil{
 		return
 	}
@@ -126,7 +128,7 @@ func (r *SandBoxBaseRunner) Run(opt *runneropt.Opt) (stdout,stderr io.Reader, er
 	}
 	
 	// run setup shell code if exists
-	if opt.Shell != nil{
+	if len(opt.Shell) > 0{
 		timeout,ok := opt.LanguagesConf.Timeouts["setup-shell"]
 		if !ok{
 			err = errors.New("Must Provide time out for setup shell");
@@ -136,7 +138,6 @@ func (r *SandBoxBaseRunner) Run(opt *runneropt.Opt) (stdout,stderr io.Reader, er
 			Dir:opt.Dir,
 			Timeout:timeout,
 		};
-		fmt.Printf("Timeout %d\n",opt.Timeout)
 		shellStdin, shellStderr, errX := spawn.RunShell(spawnOpt,opt.Shell)
 		if errX !=  nil{
 			err = errX
@@ -147,45 +148,35 @@ func (r *SandBoxBaseRunner) Run(opt *runneropt.Opt) (stdout,stderr io.Reader, er
 	
 	// run strategy
 	if opt.Strategy == SolutionOnlyStrategy {
-		
-		// stdout,stderr,err = codeRunner.SolutionOnly(opt)
-		spawnOpt := &spawn.SpawnOpt{
-			Dir:opt.Dir,
-			Timeout:opt.Timeout,
-		};
-		// code := string(opt.Code)
-		var stdin io.Reader
-		stdout, stderr, err = spawn.Spwan(spawnOpt,
-			"python",[]string{"-c","while True:print(111)"},stdin)
-		WriteToStd(stdout,stderr)
+		stdout,stderr,err = codeRunner.SolutionOnly(opt)
 	}else{
 		stdout,stderr, err = codeRunner.TestIntegration(opt)
 	}
 	if err != nil{
 		return
 	}
-	// //transform
-	// stdout,stdout, err = codeRunner.TransformOutput(stdout,stderr)
-	// if err != nil{
-	// 	return
-	// }
-	// // sanitize 
-	// stdout,err = codeRunner.SanitizeStdOut(stdout)
-	// if err != nil{
-	// 	return
-	// }
-	// // sanitize 
-	// stderr,err = codeRunner.SanitizeStdErr(stderr)
-	// if err != nil{
-	// 	return
-	// }
-	WriteToStd(stdout,stdout)
+	//transform
+	stdout,stderr, err = codeRunner.TransformOutput(stdout,stderr)
+	if err != nil{
+		return
+	}
+	// sanitize 
+	stdout,err = codeRunner.SanitizeStdOut(stdout)
+	if err != nil{
+		return
+	}
+	// sanitize 
+	stderr,err = codeRunner.SanitizeStdErr(stderr)
+	if err != nil{
+		return
+	}
+	WriteToStd(stdout,stderr)
 	return
 }
 
 // WriteToStd writes to stdin/stderr
-func WriteToStd(stdin,stderr io.Reader) (err error){
-	stdInB ,err := ioutil.ReadAll(stdin)
+func WriteToStd(stdout,stderr io.Reader) (err error){
+	stdOutB ,err := ioutil.ReadAll(stdout)
 	if err != nil {
 		return
 	}
@@ -193,7 +184,7 @@ func WriteToStd(stdin,stderr io.Reader) (err error){
 	if err != nil {
 		return
 	}
-	_, err = os.Stdout.WriteString(string(stdInB))
+	_, err = os.Stdout.WriteString(string(stdOutB))
 	if err != nil{
 		return
 	}
