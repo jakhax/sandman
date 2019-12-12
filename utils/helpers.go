@@ -1,6 +1,7 @@
 package utils;
 
 import (
+    "golang.org/x/sys/unix"
 	"time"
 	"math/rand"
 )
@@ -15,4 +16,12 @@ func RandString(n int) string {
         b[i] = letters[rand.Intn(len(letters))];
     }
     return string(b);
+}
+
+// Writable check if path is writable
+func Writable(path string)(ok bool){
+   if  err := unix.Access(path, unix.W_OK); err != nil{
+       ok = false;
+   }
+    return;
 }

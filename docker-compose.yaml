@@ -1,0 +1,15 @@
+version: "3"
+
+services:
+    base-runner:
+        image: sandman/base-runner
+        build: 
+            context: .
+            dockerfile: './docker/base.dockerFile'
+    python-runner:
+        image: sandman/python-runner
+        build: 
+            context: .
+            dockerfile: './docker/python.dockerFile'
+        depends_on:
+            - base-runner
