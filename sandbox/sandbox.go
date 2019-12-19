@@ -66,11 +66,12 @@ func (s *SandBox) Run(opt *runneropt.Opt) (stdout, stderr io.Reader, err error){
 		Runtime:"runsc-kvm",
 		Timeout:opt.Timeout,
 	}
-	stdOut, stdErr, err := containerService.Run(runContainerOption);
+	stdout, stderr, err = containerService.Run(runContainerOption);
 	if err !=  nil{
 		return;
 	}
-	WriteToStd(stdOut, stdErr)
+	
+	// WriteToStd(stdout, stdout)
 	return;
 }
 
