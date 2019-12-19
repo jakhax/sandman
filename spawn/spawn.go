@@ -4,14 +4,41 @@ import (
 	"io/ioutil"
 	"bytes"
 	"os/exec"
-	"fmt"
 	"time"
-	"errors"
+	"fmt"
+	"context"
 )
 
+// StdIO custom stdout/err with max buffer len
+type StdIO struct {
+	MaxBuffLen int 
+	Buff bytes.Buffer
+}
 
-// SpawnOpt opt
-type SpawnOpt struct {
+func (b *StdIO) Write(p []byte) (n int, err error){
+	
+	if b.MaxBuffLen !=0 && b.Buff.Len() + len(p) > b.MaxBuffLen {
+		fmt.Println(string(p))
+		err =  MaxBufferError{Message: "Max Buffer reached: Too much information has been written to stdio"}
+		// sometimes this results to a BrokenPipeError
+		return
+	}
+	
+	return b.Buff.Write(p)
+}
+
+// NewStdIO returns StdIO
+func NewStdIO(maxBufferSize int) (stdio *StdIO){
+	var buf bytes.Buffer
+	return &StdIO{
+		MaxBuffLen: maxBufferSize,
+		Buff: buf,
+	}
+}
+
+// Opt opt
+type Opt struct {
+	MaxBufferSize int
 	Timeout int 
 	Dir string
 	Env []string
@@ -19,11 +46,11 @@ type SpawnOpt struct {
 }
 // TimeoutError error
 type TimeoutError struct{
-	Message string
+
 }
 
 func (e TimeoutError) Error() string{
-	return e.Message;
+	return "Process timed out";
 }
 
 // MaxBufferError error
@@ -36,166 +63,51 @@ func (e MaxBufferError) Error() string{
 }
 
 // Spwan spwans a timed process
-func Spwan(opt *SpawnOpt, name string, args []string, stdin io.Reader)(stdout,stderr io.Reader, err error){
-	cmd := exec.Command(name,args...);
-	stderrPipe,err := cmd.StderrPipe()
-	if err != nil{
-		
-		return
-	}
-	stdoutPipe,err := cmd.StdoutPipe()
-	stdout = stdoutPipe
-	stderr = stderrPipe
-	if err != nil{
-		return
+func Spwan(opt *Opt, name string, args []string, stdin io.Reader)(stdout,stderr io.Reader, err error){
+	
+	var ctx context.Context
+	if opt.Timeout != 0{
+		var timeoutDuration time.Duration;
+		timeoutDuration = time.Millisecond*time.Duration(opt.Timeout);
+		ctxWithTimeout, cancel :=  context.WithTimeout(context.Background(),timeoutDuration)
+		ctx = ctxWithTimeout
+		defer cancel()
+	}else{
+		ctx = context.Background()
 	}
 
-	stdErrChan :=  make(chan StdIO)
-	stdOutChan :=  make(chan StdIO)
-	stdioErr := make(chan error);
-	complete := make(chan bool);
+	cmd := exec.CommandContext(ctx, name,args...);
+	
+	stdoutBuff :=  NewStdIO(opt.MaxBufferSize)
+	stderrBuff := NewStdIO(opt.MaxBufferSize)
 
+	cmd.Stderr = stderrBuff
+	cmd.Stdout = stdoutBuff
 	
 	err = cmd.Start();
 	if err != nil{
-		fmt.Println("errr");
 		return
 	}
-	go ReadStdIOFromPipe(stdoutPipe,stderrPipe,stdOutChan,stdErrChan,complete,stdioErr)
-
-	done := make(chan error);
-	go func(){
-		done <- cmd.Wait();
-		
-	}()
-
-	var timeoutDuration time.Duration;
-	if opt.Timeout != 0{
-		timeoutDuration = time.Millisecond*time.Duration(opt.Timeout);
-	}else{
-		timeoutDuration = time.Second*time.Duration(60);
+	err = cmd.Wait();
+	if ctx.Err() == context.DeadlineExceeded {
+		err = TimeoutError{};
+		return
 	}
-
-	timeout := time.After(timeoutDuration);
-	
-	select{
-		case cmdErr := <-done:
-			
-			complete <- true;
-			
-			stdOut := <-stdOutChan;
-			stdErr := <-stdErrChan;
-			
-			stdout = stdOut.Data
-			if stdOut.Error != nil{
-				err = stdOut.Error
-				return
-			}
-			
-			stderr = stdErr.Data
-			if stdErr.Error != nil{
-				err = stdErr.Error
-				return
-			}
-			if cmdErr != nil{
-				if _, ok := cmdErr.(*exec.ExitError); !ok{
-					err = cmdErr
-					return
-				}
-			}
-			
-		case <- timeout:
-			err = cmd.Process.Kill();
-			if(err!=nil){
-				return;
-			}
-			complete <- false
-			err = errors.New("Process timed out");
-		case err = <- stdioErr:
-			if err != nil{
-				return
-			}
+	stdout = &stdoutBuff.Buff
+	stderr = &stderrBuff.Buff
+	if err != nil{
+		if exitErr,ok := err.(*exec.ExitError); ok{
+			err = exitErr
 		}
-	
-
+		if maxBufferError,ok := err.(MaxBufferError); ok{
+			err = maxBufferError
+		}
+	}
 	return
 }
 
-// StdIO to store stdio from child process
-type StdIO struct{
-	Data io.Reader
-	Error error
-}
-
-// ReadStdIOFromPipe to read from child process stdout and stderr pipe
-func ReadStdIOFromPipe(stdoutPipe,stderrPipe io.ReadCloser, stdout,stderr chan StdIO, ok chan bool, stdioErr chan error){
-	reader := func(pipe io.ReadCloser, stdio chan io.Reader, errCh chan error, d string){
-		
-		KB := 1024;
-		MAX_BUFFER := KB * 1500;
-		var out []byte;
-		buf := make([]byte, 1024, 1024)
-		var err error;
-		for{
-			n,errX := pipe.Read(buf[:]);
-			if errX != nil{
-				if errX != io.EOF{
-					err = errX;
-				}
-				break;
-			}
-			if n>0{
-				if len(out)+n > MAX_BUFFER{
-					err = MaxBufferError{
-						Message:"Max Buffer reached: Too much information has been written to stdio",
-					};
-					break;
-				}
-				d :=  buf[:n];
-				out =  append(out,d...);
-			}
-		}		
-		r := bytes.NewReader(out);
-		stdio <- r;
-		errCh <- err;
-	}
-	stdoutChan := make(chan io.Reader)
-	errStdoutChan := make(chan error)
-	stderrChan :=  make(chan io.Reader)
-	errStderrChan := make(chan error)
-	go reader(stdoutPipe,stdoutChan,errStdoutChan,"stdout")
-	go reader(stderrPipe,stderrChan,errStderrChan,"stderr")
-	stdoutR := <- stdoutChan
-	stdoutErr := <-errStdoutChan
-	if err,ok := stdoutErr.(MaxBufferError); ok{
-		stdioErr <- err
-		return
-	}
-	stderrR := <- stderrChan
-	stderrErr := <-errStderrChan
-	if err,ok := stderrErr.(MaxBufferError); ok{
-		stdioErr <- err
-		return
-	}
-	
-	complete := <- ok;
-	if complete == true{
-		// w,_ := ioutil.ReadAll(stdoutR)
-		// fmt.Println(string(w))
-		// fmt.Println(stdoutErr.Error())
-		stdout <- StdIO{
-			Data:stdoutR,
-			Error:stdoutErr,
-		}
-		stderr <- StdIO{
-			Data:stderrR,
-			Error:stderrErr,
-		}
-	}
-}
-
 // RunShell run a shell command
-func RunShell(opt *SpawnOpt, shell []byte) (stdout,stderr io.Reader, err error){
+func RunShell(opt *Opt, shell []byte) (stdout,stderr io.Reader, err error){
 	shellScript :=  string(shell)
 	if err !=  nil{
 		return
@@ -204,7 +116,7 @@ func RunShell(opt *SpawnOpt, shell []byte) (stdout,stderr io.Reader, err error){
 }
 
 //RunShellFromFile runs a shell script
-func RunShellFromFile(opt *SpawnOpt, file string) (stdout,stderr io.Reader, err error){
+func RunShellFromFile(opt *Opt, file string) (stdout,stderr io.Reader, err error){
 	shell,err := ioutil.ReadFile(file)
 	if err !=  nil{
 		return

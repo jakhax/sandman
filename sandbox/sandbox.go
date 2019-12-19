@@ -147,7 +147,7 @@ func (r *SandBoxBaseRunner) Run(opt *runneropt.Opt) (stdout,stderr io.Reader, er
 			err = errors.New("Must Provide time out for setup shell");
 			return
 		}
-		spawnOpt := & spawn.SpawnOpt{
+		spawnOpt := & spawn.Opt{
 			Dir:opt.Dir,
 			Timeout:timeout,
 		};

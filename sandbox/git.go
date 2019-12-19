@@ -6,29 +6,29 @@ import (
 )
 
 // MissingGitURL error
-type MissingGitURL struct{
-	
+type MissingGitURL struct {
 }
-func (e MissingGitURL) Error() string{
+
+func (e MissingGitURL) Error() string {
 	return "Missing Git url"
 }
 
 // DownloadFromGit get project from git
-func DownloadFromGit(opt *runneropt.Opt ,timeout int)(err error){
+func DownloadFromGit(opt *runneropt.Opt, timeout int) (err error) {
 
-	spwanOpt := &spawn.SpawnOpt{
-		Dir:opt.Dir,
-		Env:opt.Env,
+	spwanOpt := &spawn.Opt{
+		Dir: opt.Dir,
+		Env: opt.Env,
 	}
-	if timeout != 0{
+	if timeout != 0 {
 		spwanOpt.Timeout = timeout
 	}
-	url :=  opt.GitURL;
-	if url == ""{
-		err =  MissingGitURL{}
-		return;
+	url := opt.GitURL
+	if url == "" {
+		err = MissingGitURL{}
+		return
 	}
-	args := []string{"clone","--depth=1",url,opt.Dir+"/."}
-	_,_,err = spawn.Spwan(spwanOpt,"git",args,nil)
+	args := []string{"clone", "--depth=1", url, opt.Dir + "/."}
+	_, _, err = spawn.Spwan(spwanOpt, "git", args, nil)
 	return
 }
