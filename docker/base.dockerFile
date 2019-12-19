@@ -1,7 +1,9 @@
 # Pull base image.
 FROM buildpack-deps:bionic-scm
 
-RUN RUN apt-get update -qq
+RUN apt-get update -qq
+
+RUN apt-get install -y software-properties-common
 
 # create non root user
 RUN groupadd -g 999 appuser && \
