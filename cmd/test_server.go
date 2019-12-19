@@ -49,7 +49,6 @@ func HandleJob(w http.ResponseWriter, r *http.Request){
 	// sandbox.WriteToStd(stdout,stderr)
 	res := &Output{}
 	if stdout != nil{
-		fmt.Println("conR")
 		stdoutB , errX := ioutil.ReadAll(stdout)
 		if errX != nil {
 			w.Write([]byte(errX.Error()))

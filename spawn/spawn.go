@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"time"
 	"fmt"
+	"context"
 )
 
 // StdIO custom stdout/err with max buffer len
@@ -64,9 +65,19 @@ func (e MaxBufferError) Error() string{
 // Spwan spwans a timed process
 func Spwan(opt *Opt, name string, args []string, stdin io.Reader)(stdout,stderr io.Reader, err error){
 	
-	cmd := exec.Command(name,args...);
-	
+	var ctx context.Context
+	if opt.Timeout != 0{
+		var timeoutDuration time.Duration;
+		timeoutDuration = time.Millisecond*time.Duration(opt.Timeout);
+		ctxWithTimeout, cancel :=  context.WithTimeout(context.Background(),timeoutDuration)
+		ctx = ctxWithTimeout
+		defer cancel()
+	}else{
+		ctx = context.Background()
+	}
 
+	cmd := exec.CommandContext(ctx, name,args...);
+	
 	stdoutBuff :=  NewStdIO(opt.MaxBufferSize)
 	stderrBuff := NewStdIO(opt.MaxBufferSize)
 
@@ -77,42 +88,20 @@ func Spwan(opt *Opt, name string, args []string, stdin io.Reader)(stdout,stderr 
 	if err != nil{
 		return
 	}
-	var timeoutDuration time.Duration;
-	if opt.Timeout != 0{
-		timeoutDuration = time.Millisecond*time.Duration(opt.Timeout);
-	}else{
-		timeoutDuration = time.Second*time.Duration(60);
+	err = cmd.Wait();
+	if ctx.Err() == context.DeadlineExceeded {
+		err = TimeoutError{};
+		return
 	}
-
-	timeout := time.After(timeoutDuration);
-
-	done := make(chan error);
-	go func(){
-		done <- cmd.Wait();
-	}()
-
-	select{
-		case cmdErr := <-done:
-			stdout = &stdoutBuff.Buff
-			stderr = &stderrBuff.Buff
-			if cmdErr !=  nil{
-				if exitErr,ok := cmdErr.(*exec.ExitError); ok{
-					err = exitErr
-					return
-				}
-				if maxBufferError,ok := cmdErr.(MaxBufferError); ok{
-					err = maxBufferError
-					return
-				}
-				return
-			}
-
-		case <- timeout:
-			err = cmd.Process.Kill();
-			if(err!=nil){
-				return;
-			}
-			err = TimeoutError{};
+	stdout = &stdoutBuff.Buff
+	stderr = &stderrBuff.Buff
+	if err != nil{
+		if exitErr,ok := err.(*exec.ExitError); ok{
+			err = exitErr
+		}
+		if maxBufferError,ok := err.(MaxBufferError); ok{
+			err = maxBufferError
+		}
 	}
 	return
 }

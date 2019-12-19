@@ -13,7 +13,7 @@ var testCommand = &cobra.Command{
 	Short:"test ",
 	RunE: func(cmd *cobra.Command, args []string) (err error){
 		// stdout,stderr,err = codeRunner.SolutionOnly(opt)
-		spawnOpt := &spawn.SpawnOpt{
+		spawnOpt := &spawn.Opt{
 			Dir:"/home/octojob",
 			Timeout:200,
 		};
