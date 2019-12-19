@@ -13,3 +13,10 @@ services:
             dockerfile: './docker/python.dockerFile'
         depends_on:
             - base-runner
+    systems-runner:
+        image: sandman/systems-runner
+        build:
+            context: .
+            dockerfile: './docker/systems.dockerFile'
+        depends_on: 
+            - base-runner
