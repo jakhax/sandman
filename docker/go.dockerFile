@@ -23,3 +23,17 @@ RUN go get github.com/onsi/gomega         # fetches the matcher library
 
 COPY frameworks/golang/codewars $GOPATH/src/codewars
 RUN go install codewars/reporter
+
+# set  workdir
+WORKDIR /home/appuser
+
+COPY entrypoint.sh entrypoint.sh
+COPY language_conf.json language_conf.json
+COPY sandman sandman
+RUN chmod +x entrypoint.sh
+RUN chmod +x sandman
+
+USER appuser
+ENV USER=appuser HOME=/home/appuser
+
+ENTRYPOINT ["./entrypoint.sh"]

@@ -6,9 +6,13 @@ import yaml
 import pprint
 import os
 languages = {
-    "python":{
-        "frameworks":["run","unittest"],
-        "timeout":20000
+    # "python":{
+    #     "frameworks":["run","unittest"],
+    #     "timeout":20000
+    # },
+    "golang":{
+        "frameworks":["run"],
+         "timeout":20000
     }
 }
 
@@ -25,10 +29,10 @@ def key_exists(d,k) -> bool:
 
 for lang, v in languages.items():
     print("Language:%s"%lang)
-    if not file_exists("examples/{lang}.yml".format(lang=lang)):
+    if not file_exists("{lang}.yml".format(lang=lang)):
         continue
     language_examples = None 
-    with open("examples/{lang}.yml".format(lang=lang),"r") as outfile:
+    with open("{lang}.yml".format(lang=lang),"r") as outfile:
         language_examples = yaml.load(outfile,Loader=yaml.FullLoader)
     for f in v["frameworks"]:
         if not key_exists(language_examples,f):

@@ -10,6 +10,7 @@ import (
 	"github.com/jakhax/sandman/runner"
 	"github.com/jakhax/sandman/containers"
 	"github.com/jakhax/sandman/runner/python"
+	"github.com/jakhax/sandman/runner/golang"
 	"github.com/jakhax/sandman/runneropt"
 	"github.com/jakhax/sandman/spawn"
 )
@@ -93,14 +94,8 @@ func GetRunnerImage(language string) (image string, err error){
 		return
 	}
 
-	switch language{
-		case runner.PYTHON:
-			image, _ =  getImageFromConf(language);
-			break;
-		default:
-			break;
-	}
-	if image == ""{
+	image, ok :=  getImageFromConf(language); 
+	if !ok{
 		err =  MissingLanguageImage{Language:language}
 	}
 	return;
@@ -218,6 +213,9 @@ func CreateCodeRunner(language string)(codeRunner runner.CodeRunner, err error){
 	switch language {
 		case runner.PYTHON:
 			codeRunner = &python.Runner{};
+			break;
+		case runner.GOLANG:
+			codeRunner = &golang.Runner{};
 			break;
 		default:
 			err = errors.New("Missing Language Code Runner")
