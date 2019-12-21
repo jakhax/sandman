@@ -1,1 +1,0 @@
-from .ck1_test import CodeKombatTestRunner
