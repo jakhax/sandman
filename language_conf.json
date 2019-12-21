@@ -30,7 +30,8 @@
     },
     "images":{
         "base":"sandman/base",
-        "python":"sandman/python-runner"
+        "python":"sandman/python-runner",
+        "golang":"sandman/go-runner"
     },
     "workingDir":{
         "default":"/home/appuser"
