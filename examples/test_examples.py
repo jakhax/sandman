@@ -6,10 +6,10 @@ import yaml
 import pprint
 import os
 languages = {
-    # "python":{
-    #     "frameworks":["run","unittest"],
-    #     "timeout":20000
-    # },
+    "python":{
+        "frameworks":["run","unittest"],
+        "timeout":20000
+    },
     "golang":{
         "frameworks":["run"],
          "timeout":20000
@@ -56,7 +56,8 @@ for lang, v in languages.items():
             print("Time taken: ",time.time()-start)
             if r.status_code == 200:
                 try:
-                    pprint.pprint(r.json())
+                    # pprint.pprint(r.json())
+                    print(r.json())
                 except json.decoder.JSONDecodeError:
                     print(r.text)
             else:

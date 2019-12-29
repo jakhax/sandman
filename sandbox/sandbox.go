@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"errors"
 	"fmt"
+	"regexp"
+	"strings"
 	"encoding/json"
 	"github.com/jakhax/sandman/runner"
 	"github.com/jakhax/sandman/containers"
@@ -180,6 +182,67 @@ func (r *SandBoxBaseRunner) Run(opt *runneropt.Opt) (stdout,stderr io.Reader, er
 		return
 	}
 	return
+}
+
+type Test struct{
+	Name string
+	Passed *bool
+	Failed *bool
+	Error *bool
+	Content string
+}
+
+func ParseTests(tests []string){
+
+	for _,t := range tests{
+		test := &Test{}
+		//get test name
+		pattern := regexp.MustCompile(`<IT::>(?P<Name>.*)`)
+		m := pattern.FindStringSubmatch(t)
+		pm := pattern.SubexpNames()
+		if len(pm) > 0 && pm[0]=="Name"{
+			test.Name = m[0]
+		}
+
+	}
+}
+
+func GetTests(text string)(tests []string){
+	pattern := regexp.MustCompile(`<IT::>.*\n(?:.*\n)+?(.*?)<COMPLETEDIN::>[\d.]+`)
+	matches := pattern.FindAllStringSubmatch(text,-1)
+	if matches == nil{
+		return
+	}
+	tests = []string{}
+	for _,sm := range matches{
+		tests = append(tests,sm[0])
+	}
+	return
+}
+
+//CleanTags removes tags from output since we dont use them
+func CleanTags(text string)string{
+	mapper :=  make(map[string]string)
+	mapper[`<DESCRIBE::>`] = `Tests: `
+	mapper[`<IT::>`] = `Test: `
+	mapper[`<PASSED::>`] = ``
+	mapper[`<FAILED::>`] = ``
+	mapper[`<ERROR::>`] = `Error: `
+	mapper[`<COMPLETEDIN::>`] = `Completed In: `
+	for k,v := range mapper{
+		text = strings.ReplaceAll(text,k,v)
+	}
+	//remove log tag
+	pattern := regexp.MustCompile(`<LOG(\w|\:)+>`)
+	text = pattern.ReplaceAllString(text,"")
+	//remove more than 1 new line
+	pattern = regexp.MustCompile(`<:LF:>`)
+	text = pattern.ReplaceAllString(text,"\n")
+	pattern = regexp.MustCompile(`(\n){2,}`)
+	text = pattern.ReplaceAllString(text,"\n")
+	//remove more than 1 new line
+
+	return text
 }
 
 // WriteToStd writes to stdin/stderr

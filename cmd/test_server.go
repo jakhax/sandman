@@ -65,6 +65,9 @@ func HandleJob(w http.ResponseWriter, r *http.Request){
 		} 
 		res.Stderr = string(stderrB)
 	}
+	res.Stdout = sandbox.CleanTags(res.Stdout)
+	fmt.Println(res.Stdout)
+
 	resC , err :=  json.Marshal(res)
 	if err != nil{
 		w.Write([]byte(err.Error()))
