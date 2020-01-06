@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"strings"
+	// "strings"
 	"encoding/json"
 	"github.com/jakhax/sandman/runner"
 	"github.com/jakhax/sandman/containers"
@@ -222,25 +222,25 @@ func GetTests(text string)(tests []string){
 
 //CleanTags removes tags from output since we dont use them
 func CleanTags(text string)string{
-	mapper :=  make(map[string]string)
-	mapper[`<DESCRIBE::>`] = `Tests: `
-	mapper[`<IT::>`] = `Test: `
-	mapper[`<PASSED::>`] = ``
-	mapper[`<FAILED::>`] = ``
-	mapper[`<ERROR::>`] = `Error: `
-	mapper[`<COMPLETEDIN::>`] = `Completed In: `
-	for k,v := range mapper{
-		text = strings.ReplaceAll(text,k,v)
-	}
-	//remove log tag
-	pattern := regexp.MustCompile(`<LOG(\w|\:)+>`)
-	text = pattern.ReplaceAllString(text,"")
-	//remove more than 1 new line
-	pattern = regexp.MustCompile(`<:LF:>`)
-	text = pattern.ReplaceAllString(text,"\n")
-	pattern = regexp.MustCompile(`(\n){2,}`)
-	text = pattern.ReplaceAllString(text,"\n")
-	//remove more than 1 new line
+	// mapper :=  make(map[string]string)
+	// mapper[`<DESCRIBE::>`] = `Tests: `
+	// mapper[`<IT::>`] = `Test: `
+	// mapper[`<PASSED::>`] = ``
+	// mapper[`<FAILED::>`] = ``
+	// mapper[`<ERROR::>`] = `Error: `
+	// mapper[`<COMPLETEDIN::>`] = `Completed In: `
+	// for k,v := range mapper{
+	// 	text := strings.ReplaceAll(text,k,v)
+	// }
+	// //remove log tag
+	// pattern := regexp.MustCompile(`<LOG(\w|\:)+>`)
+	// text = pattern.ReplaceAllString(text,"")
+	// //remove more than 1 new line
+	// pattern = regexp.MustCompile(`<:LF:>`)
+	// text = pattern.ReplaceAllString(text,"\n")
+	// pattern = regexp.MustCompile(`(\n){2,}`)
+	// text = pattern.ReplaceAllString(text,"\n")
+	// //remove more than 1 new line
 
 	return text
 }

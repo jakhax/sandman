@@ -25,8 +25,17 @@ var runCommand = &cobra.Command{
 				err = errX;
 				return
 			}
-			_,_,err=s.Run(opt)
-			if err != nil{
+			stdout,stderr,errX :=s.Run(opt)
+			outputFlag , errX :=  cmd.Flags().GetBool("stdout")
+			if errX !=  nil{
+				err = errX
+				return
+			}
+			if outputFlag{
+				sandbox.WriteToStd(stdout,stderr);
+			}
+			if errX != nil{
+				err = errX
 				return
 			}
 		}else{
@@ -122,5 +131,6 @@ func init(){
 	"An optional shell script which will be ran within the sandbox environment before the code is executed");
 	runCommand.MarkFlagRequired("code");
 	runCommand.MarkFlagRequired("language");
+	runCommand.Flags().Bool("stdout",false,"Output stdout and stderr");
 	rootCmd.AddCommand(runCommand);
 }
