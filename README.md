@@ -109,7 +109,6 @@ Or you could choose to execute the code outside of Docker by creating a containe
 ```shell
 # direct Docker call:
 docker run --rm sandman/python-runner run -c 'print(1+1)' -l 'python' -T 200000
-docker run --rm codewars/ruby-runner run -l ruby -c "puts 'I ran inside of Docker using Ruby'"
 
 # alternatively you can use the provided Docker Compose configuration:
 docker-compose run python-runner -c 'print(1+1)' -l 'python' -T 200000
