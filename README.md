@@ -123,7 +123,7 @@ docker-compose run python-runner -c 'print(1+1)' -l 'python' -T 200000
 
 The following languages are currently supported, i'll be adding support for more languages and their respective test frameworks.
 
-| Language       | Version       | Basic Run  | Project Mode | Test Integration | Docker Image  | Notes                                                                   |
-|----------------|---------------|------------|--------------|------------------|---------------|----------------|-----------------|--------------|-------------------------------------------------------------------------|
+| Language       | Version       | Basic Run  | Project Mode | Test Integration | Docker Image  | Notes |
+|----------------|---------------|------------|--------------|------------------|---------------|-------------------------------------------------------------------------|
 | Go             | 1.10.4           | ✓          |   WIP           | ginkgo           | go-runner |              |
 | Python         | 3.6           | ✓          |  WIP            | cw-2, unittest   | python-runner |              |                                                                    
